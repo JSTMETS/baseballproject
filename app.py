@@ -1,5 +1,3 @@
-#cd "/Users/computer/Desktop/비즈니스/2026 5~8 it/Data 6~8월/8월/project" && /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 -m streamlit run app.py
-
 import streamlit as st
 import pandas as pd
 from pathlib import Path
@@ -36,7 +34,7 @@ st.sidebar.title("EV-LA Dashboard")
 
 page = st.sidebar.radio(
     "Page",
-    ["Lobby", "Player"]
+    ["Lobby", "Player", "Compare"]
 )
 
 
@@ -349,4 +347,275 @@ elif page == "Player":
         x="SLG",
         y="xSLG",
         size="PA"
+    )
+
+# ==========================================
+# 6.Compare
+# ==========================================
+
+elif page == "Compare":
+
+    st.title("Player Comparison")
+
+    st.write(
+        "두 선수를 선택하여 실제 성적과 "
+        "EV-LA 기반 기대 성적을 비교합니다."
+    )
+
+
+    # ======================================
+    # 선수 A / 선수 B 영역
+    # ======================================
+
+    left, right = st.columns(2)
+
+
+    # ======================================
+    # 선수 A
+    # ======================================
+
+    with left:
+
+        st.subheader("Player A")
+
+        team_list_a = (
+            ["전체"]
+            + sorted(
+                filtered_df["team"]
+                .dropna()
+                .unique()
+                .tolist()
+            )
+        )
+
+        team_a = st.selectbox(
+            "팀 선택",
+            team_list_a,
+            key="compare_team_a"
+        )
+
+
+        player_df_a = filtered_df.copy()
+
+        if team_a != "전체":
+            player_df_a = player_df_a[
+                player_df_a["team"] == team_a
+            ]
+
+
+        player_list_a = sorted(
+            player_df_a["player_name"]
+            .dropna()
+            .unique()
+            .tolist()
+        )
+
+
+        player_a = st.selectbox(
+            "선수 선택",
+            player_list_a,
+            key="compare_player_a"
+        )
+
+
+    # ======================================
+    # 선수 B
+    # ======================================
+
+    with right:
+
+        st.subheader("Player B")
+
+        team_list_b = (
+            ["전체"]
+            + sorted(
+                filtered_df["team"]
+                .dropna()
+                .unique()
+                .tolist()
+            )
+        )
+
+        team_b = st.selectbox(
+            "팀 선택",
+            team_list_b,
+            key="compare_team_b"
+        )
+
+
+        player_df_b = filtered_df.copy()
+
+        if team_b != "전체":
+            player_df_b = player_df_b[
+                player_df_b["team"] == team_b
+            ]
+
+
+        player_list_b = sorted(
+            player_df_b["player_name"]
+            .dropna()
+            .unique()
+            .tolist()
+        )
+
+
+        player_b = st.selectbox(
+            "선수 선택",
+            player_list_b,
+            key="compare_player_b"
+        )
+
+
+    # ======================================
+    # 선택 선수 데이터
+    # ======================================
+
+    data_a = player_df_a[
+        player_df_a["player_name"] == player_a
+    ].iloc[0]
+
+
+    data_b = player_df_b[
+        player_df_b["player_name"] == player_b
+    ].iloc[0]
+
+
+    st.divider()
+
+
+    # ======================================
+    # 선수 이름 / 팀 / 포지션
+    # ======================================
+
+    left, right = st.columns(2)
+
+
+    with left:
+
+        st.subheader(
+            f'{player_a} | '
+            f'{data_a["team"]} | '
+            f'{data_a["position"]}'
+        )
+
+
+    with right:
+
+        st.subheader(
+            f'{player_b} | '
+            f'{data_b["team"]} | '
+            f'{data_b["position"]}'
+        )
+
+
+    # ======================================
+    # 핵심 지표
+    # ======================================
+
+    st.subheader("Key Metrics")
+
+
+    left, right = st.columns(2)
+
+
+    with left:
+
+        st.metric(
+            "EV-LA xOPS+",
+            f'{data_a["EVLA_xOPS+"]:.2f}'
+        )
+
+        st.metric(
+            "OPS",
+            f'{data_a["OPS"]:.3f}'
+        )
+
+        st.metric(
+            "xOPS",
+            f'{data_a["xOPS"]:.3f}'
+        )
+
+
+
+    with right:
+
+        st.metric(
+            "EV-LA xOPS+",
+            f'{data_b["EVLA_xOPS+"]:.2f}'
+        )
+
+        st.metric(
+            "OPS",
+            f'{data_b["OPS"]:.3f}'
+        )
+
+        st.metric(
+            "xOPS",
+            f'{data_b["xOPS"]:.3f}'
+        )
+
+
+    # ======================================
+    # 상세 비교표
+    # ======================================
+
+    st.subheader("Detailed Comparison")
+
+
+    compare_metrics = [
+        "PA",
+        "EVLA_xOPS+",
+        "xBA",
+        "xOBP",
+        "xSLG",
+        "xOPS",
+        "BA",
+        "OBP",
+        "SLG",
+        "OPS",
+        "OPS_minus_xOPS"
+    ]
+
+
+    comparison = pd.DataFrame({
+        "Metric": compare_metrics,
+
+        player_a: [
+            data_a[metric]
+            for metric in compare_metrics
+        ],
+
+        player_b: [
+            data_b[metric]
+            for metric in compare_metrics
+        ]
+    })
+
+
+    comparison["Difference (A - B)"] = (
+        comparison[player_a]
+        - comparison[player_b]
+    )
+
+
+    # 소수점 정리
+    comparison[
+        [
+            player_a,
+            player_b,
+            "Difference (A - B)"
+        ]
+    ] = comparison[
+        [
+            player_a,
+            player_b,
+            "Difference (A - B)"
+        ]
+    ].round(3)
+
+
+    st.dataframe(
+        comparison,
+        hide_index=True,
+        use_container_width=True
     )
